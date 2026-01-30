@@ -85,10 +85,10 @@ app.add_middleware(
     allow_origins=origins,
     allow_origin_regex=r"https://.*\.vercel\.app|https://.*\.netlify\.app",
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
-    allow_headers=["Content-Type", "Authorization"],
-    expose_headers=["Content-Disposition"],
-    max_age=600,
+    allow_methods=["*"],
+    allow_headers=["*"],
+    # expose_headers=["Content-Disposition"],
+    # max_age=600,
 )
 
 # ────────────────────────────────────────────────
@@ -198,15 +198,15 @@ async def get_current_user(cred: HTTPAuthorizationCredentials = Depends(security
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         email: str = payload.get("sub")
         if not email:
-            raise HTTPException(401, "Invalid token")
+            raise HTTPException(status_code=401, detail="Invalid token")
     except jwt.ExpiredSignatureError:
-        raise HTTPException(401, "Token has expired")
+        raise HTTPException(status_code=401, detail="Token has expired")
     except jwt.JWTError:
-        raise HTTPException(401, "Invalid token")
+        raise HTTPException(status_code=401, detail="Invalid token")
 
     user = await users_collection.find_one({"email": email})
     if not user:
-        raise HTTPException(401, "User not found")
+        raise HTTPException(status_code=401, detail="User not found")
 
     return user
 
@@ -438,5 +438,6 @@ async def list_gemini_models(_ = Depends(get_current_user)):
         raise HTTPException(500, str(e))
 
 if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8001)
+    import uvicorn, os
+    port = int(os.environ.get("PORT", 8001))
+    uvicorn.run(app, host="0.0.0.0", port=port)
